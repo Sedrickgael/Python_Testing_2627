@@ -1,36 +1,61 @@
-<html lang="en">
+<!DOCTYPE html>
+<html lang="fr">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Summary | GUDLFT Registration</title>
+    <title>GUDLFT - Tableau de bord</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-        <h2>Welcome, {{club['email']}} </h2><a href="{{url_for('logout')}}">Logout</a>
+    <div class="container">
+        <div class="header-bar">
+            <div class="user-info">
+                <span>Connecté en tant que</span>
+                <strong>{{ club['email'] }}</strong>
+            </div>
+            <div>
+                <a href="{{ url_for('show_points') }}" class="btn btn-outline" style="margin-right: 1rem;">Points</a>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline">Déconnexion</a>
+            </div>
+        </div>
 
-    {% with messages = get_flashed_messages()%}
-    {% if messages %}
-        <ul>
-       {% for message in messages %}
-            <li>{{message}}</li>
-        {% endfor %}
-       </ul>
-    {% endif%}
-    Points available: {{club['points']}}
-    <h3>Competitions:</h3>
-    <ul>
-        {% for comp in competitions%}
-        <li>
-            {{comp['name']}}<br />
-            Date: {{comp['date']}}</br>
-            Number of Places: {{comp['numberOfPlaces']}}
-            {%if comp['numberOfPlaces']|int >0%}
-            <a href="{{ url_for('book',competition=comp['name'],club=club['name']) }}">Book Places</a>
-            {%endif%}
-        </li>
-        <hr />
-        {% endfor %}
-    </ul>
-    {%endwith%}
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+            <h2>Compétitions à venir</h2>
+            <div>
+                <span style="color: var(--text-muted); margin-right: 0.5rem;">Vos points:</span>
+                <span class="badge points">{{ club['points'] }}</span>
+            </div>
+        </div>
 
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <ul class="flash-messages success">
+                    {% for message in messages %}
+                        <li>{{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
+
+        <div class="competitions-grid">
+            {% for comp in competitions %}
+                <div class="competition-card">
+                    <div class="competition-title">{{ comp['name'] }}</div>
+                    <div class="competition-detail">📅 {{ comp['date'] }}</div>
+                    <div class="competition-detail" style="margin-bottom: 1.5rem;">📍 Places: {{ comp['numberOfPlaces'] }}</div>
+                    
+                    {% if comp['date'] > today and comp['numberOfPlaces']|int > 0 %}
+                        <a href="{{ url_for('book', competition=comp['name'], club=club['name']) }}" class="btn">
+                            Réserver
+                        </a>
+                    {% elif comp['date'] <= today %}
+                        <span class="badge danger" style="text-align: center;">Terminée</span>
+                    {% else %}
+                        <span class="badge danger" style="text-align: center;">Complet</span>
+                    {% endif %}
+                </div>
+            {% endfor %}
+        </div>
+    </div>
 </body>
 </html>

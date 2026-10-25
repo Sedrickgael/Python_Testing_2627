@@ -1,4 +1,6 @@
 import json
+from datetime import datetime
+# pyrefly: ignore[missing-import]
 from flask import Flask,render_template,request,redirect,flash,url_for
 
 
@@ -26,27 +28,59 @@ def index():
 
 @app.route('/showSummary',methods=['POST'])
 def showSummary():
-    club = [club for club in clubs if club['email'] == request.form['email']][0]
+    matched_clubs = [club for club in clubs if club['email'] == request.form['email']]
+    if not matched_clubs:
+        flash("Sorry, that email wasn't found.")
+        return redirect(url_for('index'))
+    club = matched_clubs[0]
     return render_template('welcome.html',club=club,competitions=competitions)
 
 
 @app.route('/book/<competition>/<club>')
 def book(competition,club):
-    foundClub = [c for c in clubs if c['name'] == club][0]
-    foundCompetition = [c for c in competitions if c['name'] == competition][0]
-    if foundClub and foundCompetition:
-        return render_template('booking.html',club=foundClub,competition=foundCompetition)
-    else:
+    matched_clubs = [c for c in clubs if c['name'] == club]
+    matched_competitions = [c for c in competitions if c['name'] == competition]
+    if not matched_clubs or not matched_competitions:
         flash("Something went wrong-please try again")
-        return render_template('welcome.html', club=club, competitions=competitions)
+        return redirect(url_for('index'))
+    foundClub = matched_clubs[0]
+    foundCompetition = matched_competitions[0]
+    competition_date = datetime.strptime(foundCompetition['date'], '%Y-%m-%d %H:%M:%S')
+    if competition_date < datetime.now():
+        flash("This competition has already taken place and cannot be booked.")
+        return redirect(url_for('index'))
+    return render_template('booking.html',club=foundClub,competition=foundCompetition)
 
 
 @app.route('/purchasePlaces',methods=['POST'])
 def purchasePlaces():
-    competition = [c for c in competitions if c['name'] == request.form['competition']][0]
-    club = [c for c in clubs if c['name'] == request.form['club']][0]
-    placesRequired = int(request.form['places'])
+    matched_competitions = [c for c in competitions if c['name'] == request.form['competition']]
+    matched_clubs = [c for c in clubs if c['name'] == request.form['club']]
+    if not matched_competitions or not matched_clubs:
+        flash("Something went wrong-please try again")
+        return redirect(url_for('index'))
+    competition = matched_competitions[0]
+    club = matched_clubs[0]
+    try:
+        placesRequired = int(request.form['places'])
+    except ValueError:
+        flash("Please enter a valid number of places.")
+        return render_template('booking.html', club=club, competition=competition)
+    if placesRequired > int(competition['numberOfPlaces']):
+        flash("Not enough places available in this competition.")
+        return render_template('booking.html', club=club, competition=competition)
+    if placesRequired > 12:
+        flash("You cannot book more than 12 places per competition.")
+        return render_template('booking.html', club=club, competition=competition)
+    if placesRequired > int(club['points']):
+        flash("You do not have enough points to book this many places.")
+        return render_template('booking.html', club=club, competition=competition)
     competition['numberOfPlaces'] = int(competition['numberOfPlaces'])-placesRequired
+    club['points'] = int(club['points'])-placesRequired
+    with open('competitions.json', 'w') as f:
+        json.dump({'competitions': competitions}, f)
+    with open('clubs.json', 'w') as f:
+        json.dump({'clubs': clubs}, f)
     flash('Great-booking complete!')
     return render_template('welcome.html', club=club, competitions=competitions)
 

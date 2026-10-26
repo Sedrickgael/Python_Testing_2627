@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+{% block title %}Points des clubs | GUDLFT — Réservations des compétitions{% endblock %}
+
+{% block content %}
+<section class="panel">
+    <h1>Points des clubs</h1>
+    <div class="table-wrapper">
+        <table class="points-table">
+            <thead>
+                <tr>
+                    <th>Rang</th>
+                    <th>Club</th>
+                    <th>Points</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for club in clubs | sort_by_points %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ club['name'] }}</td>
+                    <td>{{ club['points'] }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="secondary-actions">
+        <a href="{{ url_for('index') }}">Retour à l'accueil</a>
+    </div>
+</section>
+{% endblock %}
